@@ -1,11 +1,75 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
-  <body>
-    <h1><%= title %></h1>
-    <p>Welcome to <%= title %></p>
-  </body>
+	<head>
+		<title><%= title %></title>
+		<link rel="stylesheet" href="/stylesheets/style.css" />
+	</head>
+	<body>
+		<h1>웹소켓을 활용한 채팅 기능 구현 연습</h1>
+
+		채팅방 코드: <input type="text" id="roomid" value="test" />
+		<button id="btnEntry">입장하기</button><br />
+		채팅 아이디: <input type="text" id="userid" value="bo" /><br />
+		발신 메시지: <input type="text" id="msg" value="발신메시지" /><br />
+		<button id="btnSend" onclick="fnSendMsg();">전송하기</button><br />
+		<button id="btnSendGroup" onclick="fnSendGroupMsg();">그룹 전송하기</button>
+		<hr />
+		<div>채팅메세지 목록</div>
+		<ul id="msgList"></ul>
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+		<!-- 정적인 HTML이나 소켓 서버와 분리된 프론트엔드/타 웹사이트에서 소켓을 원할 때 -->
+		<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script> -->
+
+		<!-- MVC 환경에서의 서버 파일에서 socket.io.js를 참조하는 경우 -->
+		<script src="/socket.io/socket.io.js"></script>
+
+		<script>
+			// 브라우저 측 소켓 클라이언트 라이브러리 및 객체 생성
+			var socket = io.connect("http://localhost:3000");
+
+			// 서버에서 특정 이벤트명으로 보낸 메시지를 수신한다.
+			// socket.on('클라이언트에서 수신할 이벤트명', 서버에서 전송한 데이터)
+			socket.on("broadcasting", function (userid, msg) {
+				var liTag = `<li>${userid}-${msg}</li>`;
+				$("#msgList").append(liTag);
+			});
+
+			// 그룹 채팅방 메시지 수신하기
+			socket.on("roomMsg", function (userid, msg) {
+				var liTag = `<li>${userid}-${msg}</li>`;
+				$("#msgList").append(liTag);
+			});
+
+			socket.on("entryOk", function (msg) {
+				console.log(msg);
+			});
+
+			// 서버로 메시지를 발송하기
+			function fnSendMsg() {
+				// 서버로 메세지를 보낼 때는 socket.emit('서버 수신 이벤트명', 전송할 데이터1, 전송데이터2, json도 가능)
+				socket.emit(
+					"sendMsg",
+					document.getElementById("userid").value,
+					document.getElementById("msg").value
+				);
+			}
+
+			// 서버로 그룹 메시지를 발송하기
+			function fnSendGroupMsg() {
+				socket.emit(
+					"sendRoomMsg",
+					document.getElementById("roomid").value,
+					document.getElementById("userid").value,
+					document.getElementById("msg").value
+				);
+			}
+
+			// 채팅방 입장하기
+			$("#btnEntry").click(function () {
+				socket.emit("joinGroup", document.getElementById("roomid").value);
+			});
+		</script>
+	</body>
 </html>
